@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tómbola de Dominó 🀄</title>
+    <title>Tómbola de Dominó Profesional 🀄</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -11,6 +11,7 @@
             --retadores: #2980b9;
             --danger: #e74c3c;
             --warning: #f39c12;
+            --purple: #8e44ad;
             --bg: #f8f9fa;
         }
         body {
@@ -21,7 +22,7 @@
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
             background: white;
             padding: 25px;
@@ -55,7 +56,7 @@
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             transition: 0.2s;
         }
         button:hover { opacity: 0.9; }
@@ -69,16 +70,36 @@
             margin-bottom: 20px;
         }
 
+        .panel-opciones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .btn-opcion-1 { background-color: var(--retadores); color: white; }
+        .btn-opcion-2 { background-color: var(--purple); color: white; }
+
+        .mesas-contenedor {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
         .mesa-box {
             background-color: #e8f8f5;
             border: 2px dashed var(--accent);
             padding: 20px;
             border-radius: 8px;
             text-align: center;
-            margin-bottom: 25px;
-            display: none;
+            position: relative;
+        }
+        .mesa-box.mesa2 {
+            background-color: #f5eef8;
+            border-color: var(--purple);
         }
         .mesa-box h3 { margin-top: 0; color: #117a65; }
+        .mesa-box.mesa2 h3 { color: #6c3483; }
         
         .parejas-container {
             display: flex;
@@ -97,6 +118,11 @@
             flex-direction: column;
             gap: 10px;
         }
+        .pareja.oculta {
+            background: rgba(240, 240, 240, 0.5);
+            border: 1px dashed #ccc;
+            box-shadow: none;
+        }
         .pareja h4 { margin: 0; color: var(--primary); }
         .vs { font-weight: bold; color: var(--danger); font-size: 18px; align-self: center; }
 
@@ -106,6 +132,12 @@
             padding: 8px;
             border-radius: 6px;
             font-size: 15px;
+        }
+        .pareja.oculta .slot-jugador {
+            background: transparent;
+            border: none;
+            color: #999;
+            font-style: italic;
         }
         .btn-sub {
             background-color: var(--warning);
@@ -117,10 +149,26 @@
             width: 100%;
         }
 
+        .btn-cerrar-mesa {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            padding: 0;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 20px;
         }
         th, td {
             padding: 12px;
@@ -143,13 +191,6 @@
             font-size: 12px;
             border-radius: 4px;
         }
-        .btn-reset {
-            background-color: #7f8c8d;
-            color: white;
-            font-size: 12px;
-            padding: 6px 12px;
-            margin-top: 15px;
-        }
     </style>
 </head>
 <body>
@@ -163,30 +204,54 @@
         <button class="btn-add" onclick="agregarJugador()">Agregar</button>
     </div>
 
-    <!-- Botón de Sorteo -->
-    <button id="btnSorteo" class="btn-draw" onclick="ejecutarSorteo()">🎲 INICIAR MESA (4 JUGADORES) 🎲</button>
+    <!-- Botón Inicial Único -->
+    <button id="btnSorteoInicial" class="btn-draw" onclick="iniciarPrimeraMesa()">🎲 ABRIR MESA PRINCIPAL (4 JUGADORES) 🎲</button>
 
-    <!-- Caja de resultado de mesa -->
-    <div id="mesaBox" class="mesa-box">
-        <h3 id="tituloMesa">¡Mesa Inicial Armada! 🎴</h3>
-        <div class="parejas-container">
-            <!-- Pareja 1 -->
-            <div class="pareja">
-                <h4 id="tituloP1">Pareja 1 🔵</h4>
-                <div id="slot0" class="slot-jugador"></div>
-                <div id="slot1" class="slot-jugador"></div>
-            </div>
-            
-            <div class="vs">VS</div>
-            
-            <!-- Pareja 2 -->
-            <div class="pareja">
-                <h4 id="tituloP2">Pareja 2 🔴</h4>
-                <div id="slot2" class="slot-jugador"></div>
-                <div id="slot3" class="slot-jugador"></div>
+    <!-- Panel Dinámico de Opciones Posteriores -->
+    <div id="panelOpciones" class="panel-opciones">
+        <button class="btn-opcion-1" onclick="sacarDosRetadores()">⚔️ Elegir Siguiente Pareja (2 Retadores)</button>
+        <button class="btn-opcion-2" onclick="abrirMesaNueva()">➕ Abrir Mesa Nueva (2 Parejas / 4 Jugadores)</button>
+    </div>
+
+    <!-- Área de visualización de Mesas -->
+    <div class="mesas-contenedor">
+        <!-- Mesa 1 -->
+        <div id="mesa1Box" class="mesa-box" style="display: none;">
+            <button class="btn-cerrar-mesa" onclick="cerrarMesa(1)">X</button>
+            <h3 id="tituloMesa1">Mesa Principal 🎴</h3>
+            <div class="parejas-container">
+                <div id="m1-blockP1" class="pareja">
+                    <h4>Pareja 1 🔵</h4>
+                    <div id="m1-slot0" class="slot-jugador"></div>
+                    <div id="m1-slot1" class="slot-jugador"></div>
+                </div>
+                <div id="m1-vs" class="vs">VS</div>
+                <div id="m1-blockP2" class="pareja">
+                    <h4>Pareja 2 🔴</h4>
+                    <div id="m1-slot2" class="slot-jugador"></div>
+                    <div id="m1-slot3" class="slot-jugador"></div>
+                </div>
             </div>
         </div>
-        <button class="btn-reset" onclick="reiniciarFlujo()">Reiniciar a Mesa de 4</button>
+
+        <!-- Mesa 2 -->
+        <div id="mesa2Box" class="mesa-box mesa2" style="display: none;">
+            <button class="btn-cerrar-mesa" onclick="cerrarMesa(2)">X</button>
+            <h3>Mesa Secundaria 🌟</h3>
+            <div class="parejas-container">
+                <div class="pareja">
+                    <h4>Pareja 1 🔵</h4>
+                    <div id="m2-slot0" class="slot-jugador"></div>
+                    <div id="m2-slot1" class="slot-jugador"></div>
+                </div>
+                <div class="vs">VS</div>
+                <div class="pareja">
+                    <h4>Pareja 2 🔴</h4>
+                    <div id="m2-slot2" class="slot-jugador"></div>
+                    <div id="m2-slot3" class="slot-jugador"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Tabla de posiciones/espera -->
@@ -204,12 +269,11 @@
 </div>
 
 <script>
-    // Variables limpias en memoria (Sin LocalStorage)
     let jugadores = {};
-    let primeraRonda = true;
-    let jugadoresMesaActual = [];
+    let mesa1 = [];
+    let mesa2 = [];
+    let mostrandoSoloRetadores = false; // Controla el estado visual de la mesa 1
 
-    // Escuchar la tecla Enter
     document.getElementById('nombreJugador').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') agregarJugador();
     });
@@ -217,7 +281,6 @@
     function actualizarTablaUI() {
         const tbody = document.getElementById('tablaEspera');
         tbody.innerHTML = '';
-
         const ordenados = Object.entries(jugadores).sort((a, b) => b[1] - a[1]);
 
         if (ordenados.length === 0) {
@@ -237,24 +300,13 @@
         });
     }
 
-    function actualizarBotonesUI() {
-        const btn = document.getElementById('btnSorteo');
-        if (primeraRonda) {
-            btn.innerText = "🎲 INICIAR MESA (4 JUGADORES) 🎲";
-            btn.style.backgroundColor = "var(--accent)";
-        } else {
-            btn.innerText = "🎲 SACAR SIGUIENTE PAREJA (2 JUGADORES) 🎲";
-            btn.style.backgroundColor = "var(--retadores)";
-        }
-    }
-
     function agregarJugador() {
         const input = document.getElementById('nombreJugador');
         const nombre = input.value.trim();
 
         if (!nombre) return alert('Por favor, escribe un nombre.');
-        if (jugadores[nombre] || jugadoresMesaActual.includes(nombre)) {
-            return alert('Este jugador ya está registrado (en espera o jugando).');
+        if (jugadores[nombre] || mesa1.includes(nombre) || mesa2.includes(nombre)) {
+            return alert('Este jugador ya está registrado.');
         }
 
         jugadores[nombre] = 1;
@@ -263,7 +315,7 @@
     }
 
     function eliminarJugador(nombre) {
-        if (confirm(`¿Seguro que quieres eliminar a ${nombre} de la tómbola?`)) {
+        if (confirm(`¿Eliminar a ${nombre}?`)) {
             delete jugadores[nombre];
             actualizarTablaUI();
         }
@@ -289,96 +341,151 @@
         return nombres[0];
     }
 
-    function ejecutarSorteo() {
-        const cantidadNecesaria = primeraRonda ? 4 : 2;
-        if (Object.keys(jugadores).length < cantidadNecesaria) {
-            return alert(`Faltan jugadores. Se necesitan mínimo ${cantidadNecesaria} en la tómbola.`);
-        }
-
+    function envejecerEspera() {
         for (let j in jugadores) {
             jugadores[j] += 2;
         }
+    }
 
-        if (primeraRonda) {
-            jugadoresMesaActual = [];
+    // ACCION: Iniciar por primera vez la Mesa 1 (4 Jugadores completos)
+    function iniciarPrimeraMesa() {
+        if (Object.keys(jugadores).length < 4) return alert("Se necesitan mínimo 4 jugadores.");
+        
+        mostrandoSoloRetadores = false;
+        mesa1 = [extraerUnJugador(), extraerUnJugador(), extraerUnJugador(), extraerUnJugador()];
+        mesa1.sort(() => Math.random() - 0.5);
+
+        document.getElementById('btnSorteoInicial').style.display = 'none';
+        document.getElementById('panelOpciones').style.display = 'grid';
+
+        renderizarMesaUI(1);
+        actualizarTablaUI();
+    }
+
+    // ACCION: Elegir pareja (Sacar 2 retadores y limpiar la pareja anterior en pantalla)
+    function sacarDosRetadores() {
+        if (Object.keys(jugadores).length < 2) return alert("Faltan jugadores. Necesitas mínimo 2 en espera.");
+
+        envejecerEspera();
+        
+        // Si la pareja anterior estaba jugando en mesa1 (slots 0 y 1), los devolvemos a la tómbola para que roten limpios
+        if (mesa1[0] && mesa1[0] !== "---") jugadores[mesa1[0]] = 1;
+        if (mesa1[1] && mesa1[1] !== "---") jugadores[mesa1[1]] = 1;
+
+        // Limpiamos la pareja 1 vieja de la memoria
+        mesa1[0] = "---";
+        mesa1[1] = "---";
+
+        // Sorteamos la nueva pareja elegida en los slots de la derecha
+        mesa1[2] = extraerUnJugador();
+        mesa1[3] = extraerUnJugador();
+
+        mostrandoSoloRetadores = true;
+
+        renderizarMesaUI(1);
+        actualizarTablaUI();
+    }
+
+    // ACCION: Abrir una mesa completamente nueva (4 jugadores)
+    function abrirMesaNueva() {
+        if (Object.keys(jugadores).length < 4) return alert("Faltan jugadores. Necesitas mínimo 4 para armar otra mesa completa.");
+
+        envejecerEspera();
+        mesa2 = [extraerUnJugador(), extraerUnJugador(), extraerUnJugador(), extraerUnJugador()];
+        mesa2.sort(() => Math.random() - 0.5);
+
+        renderizarMesaUI(2);
+        actualizarTablaUI();
+    }
+
+    function renderizarMesaUI(numMesa) {
+        if (numMesa === 1) {
+            const blockP1 = document.getElementById('m1-blockP1');
+            const blockP2 = document.getElementById('m1-blockP2');
+            const vsDiv = document.getElementById('m1-vs');
+            const titulo = document.getElementById('tituloMesa1');
+
+            if (mostrandoSoloRetadores) {
+                // Modificar estructura visual para enfocar solo la pareja elegida
+                titulo.innerText = "¡Siguiente Pareja Elegida! 🚀";
+                blockP1.className = "pareja oculta";
+                blockP1.querySelector('h4').innerText = "Mesa Anterior 🔵";
+                document.getElementById('m1-slot0').innerHTML = "Rotando...";
+                document.getElementById('m1-slot1').innerHTML = "Rotando...";
+                
+                blockP2.className = "pareja";
+                blockP2.querySelector('h4').innerText = "Nuevos Retadores 🔴";
+                
+                for (let i = 2; i < 4; i++) {
+                    const nombre = mesa1[i];
+                    document.getElementById(`m1-slot${i}`).innerHTML = `
+                        <strong>${nombre}</strong><br>
+                        <button class="btn-sub" onclick="sustituirIndividual(1, ${i})">🔄 Cambiar</button>
+                    `;
+                }
+            } else {
+                // Formato normal de 4 jugadores activos cara a cara
+                titulo.innerText = "Mesa Principal 🎴";
+                blockP1.className = "pareja";
+                blockP1.querySelector('h4').innerText = "Pareja 1 🔵";
+                blockP2.className = "pareja";
+                blockP2.querySelector('h4').innerText = "Pareja 2 🔴";
+
+                for (let i = 0; i < 4; i++) {
+                    const nombre = mesa1[i];
+                    document.getElementById(`m1-slot${i}`).innerHTML = `
+                        <strong>${nombre}</strong><br>
+                        <button class="btn-sub" onclick="sustituirIndividual(1, ${i})">🔄 Cambiar</button>
+                    `;
+                }
+            }
+            document.getElementById('mesa1Box').style.display = 'block';
+        } else {
+            // Render de Mesa 2 estándar (Siempre 4 personas)
             for (let i = 0; i < 4; i++) {
-                jugadoresMesaActual.push(extraerUnJugador());
+                const nombre = mesa2[i];
+                document.getElementById(`m2-slot${i}`).innerHTML = `
+                    <strong>${nombre}</strong><br>
+                    <button class="btn-sub" onclick="sustituirIndividual(2, ${i})">🔄 Cambiar</button>
+                `;
             }
-            jugadoresMesaActual.sort(() => Math.random() - 0.5);
-            primeraRonda = false;
-        } else {
-            jugadoresMesaActual[2] = extraerUnJugador();
-            jugadoresMesaActual[3] = extraerUnJugador();
+            document.getElementById('mesa2Box').style.display = 'block';
         }
-
-        renderizarMesa();
-        actualizarTablaUI();
-        actualizarBotonesUI();
     }
 
-    function renderizarMesa() {
-        if (jugadoresMesaActual.length === 0) {
-            document.getElementById('mesaBox').style.display = 'none';
-            return;
-        }
+    function sustituirIndividual(numMesa, slotIndex) {
+        if (Object.keys(jugadores).length === 0) return alert("No hay nadie más en la tómbola.");
 
-        const mesaBox = document.getElementById('mesaBox');
-        
-        if (!primeraRonda && (jugadoresMesaActual[0] === "---" || jugadoresMesaActual[1] === "---")) {
-            document.getElementById('tituloMesa').innerText = "¡Nuevos Retadores Listos! ⚔️";
-            document.getElementById('tituloP1').innerText = "Mesa (Esperando Ganador)";
-            document.getElementById('tituloP2').innerText = "Nuevos Retadores 🚀";
-        } else {
-            document.getElementById('tituloMesa').innerText = "¡Mesa Activa! 🎴";
-            document.getElementById('tituloP1').innerText = "Pareja 1 🔵";
-            document.getElementById('tituloP2').innerText = "Pareja 2 🔴";
-        }
+        const lista = numMesa === 1 ? mesa1 : mesa2;
+        const saliente = lista[slotIndex];
+        const nuevo = extraerUnJugador();
 
-        for (let i = 0; i < 4; i++) {
-            const nombre = jugadoresMesaActual[i] || "---";
-            let htmlContent = `<strong>${nombre}</strong>`;
-            
-            if (nombre !== "---") {
-                htmlContent += `<br><button class="btn-sub" onclick="reemplazarJugadorMesa(${i})">🔄 Cambiar</button>`;
-            }
-            document.getElementById(`slot${i}`).innerHTML = htmlContent;
-        }
+        if (saliente && saliente !== "---") jugadores[saliente] = 1;
+        lista[slotIndex] = nuevo;
 
-        mesaBox.style.display = 'block';
-    }
-
-    function reemplazarJugadorMesa(indexSlot) {
-        if (Object.keys(jugadores).length === 0) {
-            return alert("No hay más jugadores disponibles en la tómbola para hacer el cambio.");
-        }
-
-        const jugadorSaliente = jugadoresMesaActual[indexSlot];
-        const nuevoJugador = extraerUnJugador();
-        
-        if (jugadorSaliente && jugadorSaliente !== "---") {
-            jugadores[jugadorSaliente] = 1;
-        }
-
-        jugadoresMesaActual[indexSlot] = nuevoJugador;
-        renderizarMesa();
+        renderizarMesaUI(numMesa);
         actualizarTablaUI();
     }
 
-    function reiniciarFlujo() {
-        jugadoresMesaActual.forEach(j => {
+    function cerrarMesa(numMesa) {
+        const lista = numMesa === 1 ? mesa1 : mesa2;
+        
+        lista.forEach(j => {
             if (j && j !== "---") jugadores[j] = 1;
         });
-        jugadoresMesaActual = [];
-        primeraRonda = true;
-        
-        renderizarMesa();
-        actualizarTablaUI();
-        actualizarBotonesUI();
-    }
 
-    // Ejecución inicial limpia
-    actualizarTablaUI();
-    actualizarBotonesUI();
+        if (numMesa === 1) { mesa1 = []; mostrandoSoloRetadores = false; }
+        else { mesa2 = []; }
+
+        document.getElementById(`mesa${numMesa}Box`).style.display = 'none';
+        
+        if (mesa1.length === 0 && mesa2.length === 0) {
+            document.getElementById('btnSorteoInicial').style.display = 'block';
+            document.getElementById('panelOpciones').style.display = 'none';
+        }
+
+        actualizarTablaUI();
+    }
 </script>
 
 </body>
